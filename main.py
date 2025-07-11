@@ -16,19 +16,21 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
-# Load or initialize data
-if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "r") as f:
-        farmings = json.load(f)
-else:
-    farmings = {}
+# Load data from file
+def load_data():
+    global farmings
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            farmings = json.load(f)
+    else:
+        farmings = {}
 
-# Save data
+# Save data to file
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(farmings, f, indent=2)
 
-# Create a 10-digit farming code
+# Generate a random 10-digit farming code
 def generate_code():
     return str(random.randint(10**9, 10**10 - 1))
 
@@ -40,6 +42,7 @@ async def on_ready():
 @tree.command(name="create", description="Create a new farming session")
 @app_commands.checks.has_role(FARMING_ROLE_ID)
 async def create(interaction: discord.Interaction):
+    load_data()
     code = generate_code()
     farmings[code] = {
         "creator_id": interaction.user.id,
@@ -52,6 +55,7 @@ async def create(interaction: discord.Interaction):
 @tree.command(name="join", description="Join an open farming session")
 @app_commands.describe(code="10-digit farming code", nickname="Your nickname for the farming")
 async def join(interaction: discord.Interaction, code: str, nickname: str):
+    load_data()
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -73,6 +77,7 @@ async def join(interaction: discord.Interaction, code: str, nickname: str):
 @app_commands.checks.has_role(FARMING_ROLE_ID)
 @app_commands.describe(code="10-digit farming code")
 async def close(interaction: discord.Interaction, code: str):
+    load_data()
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -84,6 +89,7 @@ async def close(interaction: discord.Interaction, code: str):
 @tree.command(name="view", description="View a farming session")
 @app_commands.describe(code="10-digit farming code")
 async def view(interaction: discord.Interaction, code: str):
+    load_data()
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -105,6 +111,35 @@ async def view(interaction: discord.Interaction, code: str):
 
     await interaction.response.send_message(embed=embed)
 
+@tree.command(name="list", description="Get a random nickname list from a farming session")
+@app_commands.describe(code="10-digit farming code")
+async def list_command(interaction: discord.Interaction, code: str):
+    load_data()
+
+    if code not in farmings:
+        await interaction.response.send_message("❌ Invalid farming code.")
+        return
+
+    session = farmings[code]
+    participants = session["participants"]
+
+    if not participants:
+        await interaction.response.send_message("❌ No participants in this farming session.")
+        return
+
+    nicknames = list(participants.values())
+    random.shuffle(nicknames)
+
+    result = "\n".join([f"{i+1}. {nick}" for i, nick in enumerate(nicknames)])
+
+    embed = discord.Embed(
+        title=f"🎲 Random Farming Order for `{code}`",
+        description=result,
+        color=discord.Color.blue()
+    )
+
+    await interaction.response.send_message(embed=embed)
+
 # Handle missing role errors
 @create.error
 @close.error
@@ -112,6 +147,6 @@ async def role_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingRole):
         await interaction.response.send_message("❌ You don’t have permission to use this command.")
 
-# Start the web server for UptimeRobot and run the bot
+# Start the keep-alive server and run the bot
 keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))
