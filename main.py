@@ -56,6 +56,8 @@ async def create(interaction: discord.Interaction):
 @app_commands.describe(code="10-digit farming code", nickname="Your nickname for the farming")
 async def join(interaction: discord.Interaction, code: str, nickname: str):
     load_data()
+    code = str(code)
+
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -78,6 +80,8 @@ async def join(interaction: discord.Interaction, code: str, nickname: str):
 @app_commands.describe(code="10-digit farming code")
 async def close(interaction: discord.Interaction, code: str):
     load_data()
+    code = str(code)
+
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -90,6 +94,8 @@ async def close(interaction: discord.Interaction, code: str):
 @app_commands.describe(code="10-digit farming code")
 async def view(interaction: discord.Interaction, code: str):
     load_data()
+    code = str(code)
+
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
         return
@@ -115,6 +121,7 @@ async def view(interaction: discord.Interaction, code: str):
 @app_commands.describe(code="10-digit farming code")
 async def list_command(interaction: discord.Interaction, code: str):
     load_data()
+    code = str(code)
 
     if code not in farmings:
         await interaction.response.send_message("❌ Invalid farming code.")
@@ -147,6 +154,6 @@ async def role_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingRole):
         await interaction.response.send_message("❌ You don’t have permission to use this command.")
 
-# Start the keep-alive server and run the bot
+# Keep the bot alive + run
 keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))
